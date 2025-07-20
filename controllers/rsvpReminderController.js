@@ -1,5 +1,5 @@
 const Event = require("../models/Event");
-const RsvpReminderLog = require("../models/RsvpReminderLog");
+const RsvpReminderLog = require("../models/RSVPReminderLog");
 
 exports.getRSVPRemindersByEvent = async (req, res) => {
   const { eventId } = req.params;
