@@ -3,7 +3,7 @@ const nodemailer = require("nodemailer");
 const Event = require("../models/Event");
 const RSVP = require("../models/RSVP");
 const User = require("../models/User");
-const RsvpReminderLog = require("../models/RsvpReminderLog");
+const RsvpReminderLog = require("../models/RSVPReminderLog");
 
 const transporter = nodemailer.createTransport({
   service: "gmail",
