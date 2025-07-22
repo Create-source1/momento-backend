@@ -67,19 +67,28 @@ const createEvent = async (req, res) => {
 };
 
 // Get All Events
+// const getMyEvents = async (req, res) => {
+//   try {
+//     const userId = req.user.userId;
+
+//     const events = await Event.find({ organizer: userId }).populate(
+//       "organizer",
+//       "name email"
+//     );
+
+//     res.status(200).json({ success: true, data: events });
+//   } catch (err) {
+//     console.error("Error fetching user events:", err);
+//     res.status(500).json({ success: false, message: err.message });
+//   }
+// };
+
 const getMyEvents = async (req, res) => {
   try {
-    const userId = req.user.userId;
-
-    const events = await Event.find({ organizer: userId }).populate(
-      "organizer",
-      "name email"
-    );
-
-    res.status(200).json({ success: true, data: events });
+    const events = await Event.find({ organizer: req.user.userId });
+    res.status(200).json(events); // ✅ return array directly
   } catch (err) {
-    console.error("Error fetching user events:", err);
-    res.status(500).json({ success: false, message: err.message });
+    res.status(500).json({ message: err.message });
   }
 };
 
