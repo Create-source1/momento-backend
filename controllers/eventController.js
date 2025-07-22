@@ -1,6 +1,6 @@
 const Event = require("../models/Event");
 const mongoose = require("mongoose");
-const nodemailer = require("nodemailer")
+const nodemailer = require("nodemailer");
 
 // Create Event
 // const createEvent = async (req, res) => {
@@ -66,16 +66,20 @@ const createEvent = async (req, res) => {
   }
 };
 
-// Get All Public Events
-const getAllPublicEvents = async (req, res) => {
+// Get All Events
+const getMyEvents = async (req, res) => {
   try {
-    const events = await Event.find({ isPublic: true }).populate(
+    const userId = req.user.userId;
+
+    const events = await Event.find({ organizer: userId }).populate(
       "organizer",
-      "name"
+      "name email"
     );
-    res.status(200).json(events);
+
+    res.status(200).json({ success: true, data: events });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    console.error("Error fetching user events:", err);
+    res.status(500).json({ success: false, message: err.message });
   }
 };
 
@@ -83,7 +87,7 @@ const getAllPublicEvents = async (req, res) => {
 const getEventById = async (req, res) => {
   try {
     const event = await Event.findById(req.params.id).populate(
-      "organizer attendees",
+      "createdBy invitedUsers",
       "name email"
     );
     if (!event) return res.status(404).json({ message: "Event not found" });
@@ -159,14 +163,11 @@ const getFilteredEventsTimeline = async (req, res) => {
     const sortOrder = order === "desc" ? -1 : 1;
 
     let eventQuery = {
-      $or: [
-        { createdBy: userId },
-        { isPublic: true },
-      ],
+      $or: [{ createdBy: userId }, { isPublic: true }],
     };
 
     if (type) {
-      const tagsArray = type.split(",").map(tag => tag.trim());
+      const tagsArray = type.split(",").map((tag) => tag.trim());
       eventQuery.tags = { $in: tagsArray };
     }
 
@@ -180,8 +181,7 @@ const getFilteredEventsTimeline = async (req, res) => {
     }
 
     // Step 1: Get events (before RSVP filtering)
-    let events = await Event.find(eventQuery)
-      .sort({ [sort]: sortOrder });
+    let events = await Event.find(eventQuery).sort({ [sort]: sortOrder });
 
     // Step 2: Filter by RSVP status if provided
     if (status) {
@@ -206,7 +206,7 @@ const getFilteredEventsTimeline = async (req, res) => {
         total,
         page: parseInt(page),
         totalPages: Math.ceil(total / parseInt(limit)),
-        limit: parseInt(limit)
+        limit: parseInt(limit),
       },
       events: paginatedEvents,
     });
@@ -216,6 +216,30 @@ const getFilteredEventsTimeline = async (req, res) => {
   }
 };
 
+// Get sent invitations by current organizer
+const getEventInvitations = async (req, res) => {
+  try {
+    const event = await Event.findById(req.params.eventId).select(
+      "title startDateTime endDateTime invitedUsers"
+    );
+
+    if (!event) {
+      return res.status(404).json({ message: "Event not found" });
+    }
+
+    res.status(200).json({
+      title: event.title,
+      date: {
+        start: event.startDateTime,
+        end: event.endDateTime,
+      },
+      invitedUsers: event.invitedUsers,
+    });
+  } catch (err) {
+    console.error("Fetch invitations error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
 
 const sendEventInvitations = async (req, res) => {
   const { eventId } = req.params;
@@ -266,10 +290,11 @@ const sendEventInvitations = async (req, res) => {
 
 module.exports = {
   createEvent,
-  getAllPublicEvents,
+  getMyEvents,
   getEventById,
   // {rsvpToEvent}
   deleteEvent,
   getFilteredEventsTimeline,
+  getEventInvitations,
   sendEventInvitations,
 };
